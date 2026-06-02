@@ -84,7 +84,7 @@
                 RESERVAR POR WHATSAPP
             </a>
             
-            <p style="font-size: 0.8rem; color: #64748b; margin-top: 20px;">Validado en: <br><span id="direccion-text" style="font-weight: bold; color: #334155;">---</span></p>
+            <p style="font-size: 0.8rem; color: #64748b; margin-top: 20px;">Validado en: <br><span id="direccion-text" style="font-weight: bold; color: #334155;">Obteniendo ubicación...</span></p>
         </div>
 
         <img src="ROAD NEGRO (1).png" alt="OnRoad Analytics" class="logo-onroad">
@@ -92,7 +92,6 @@
 
     <script>
         const GEOAPIFY_KEY = "73282b6f42214899a14ad7ad5421244d"; 
-        // URL de tu última implementación (SJTg)
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyBXqLfgn7YV-Ytt99wg8XSlMT0sR-g7ZSIJZHBWhQHYEuvlzefABoNdEbj4nQEgeSJTg/exec";
         const PHONE = "522712076727";
 
@@ -101,28 +100,63 @@
         }
 
         function procesar() {
+            // Pasamos opciones al GPS para que responda instantáneamente y no se quede colgado buscando precisión extrema
+            const gpsOptions = {
+                enableHighAccuracy: false,
+                timeout: 5000,
+                maximumAge: 60000
+            };
+
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(async (pos) => {
                     const { latitude: lat, longitude: lon } = pos.coords;
+                    const idUnico = generarID();
+
+                    // TRUCO DE VELOCIDAD: Mostramos la pantalla de éxito YA de inmediato
+                    const texto = `Hola vi tu publicidad en Onroad y me interesa asistir al evento para celebrar a PAPÁ y conseguir un 10% de descuento con mi código: ${idUnico}`;
+                    const finalLink = `https://wa.me/${PHONE}?text=${encodeURIComponent(texto)}`;
+
+                    document.getElementById('loading-area').classList.add('hidden');
+                    document.getElementById('success-area').classList.remove('hidden');
+                    document.getElementById('id-unico').innerText = idUnico;
+                    document.getElementById('wa-btn').href = finalLink;
+
+                    // El proceso pesado de traducir la dirección y enviar a Google Sheets ocurre en segundo plano
                     try {
                         const geoRes = await fetch(`https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lon}&apiKey=${GEOAPIFY_KEY}`);
                         const geoData = await geoRes.json();
-                        const direccion = geoData.features[0].properties.formatted;
-                        const idUnico = generarID();
+                        const direccion = geoData.features[0].properties.formatted || "Dirección no disponible";
+                        
+                        document.getElementById('direccion-text').innerText = direccion;
 
-                        // Envío nativo de parámetros mediante FormData
+                        // Mandamos datos a la tabla en el fondo
                         const formData = new FormData();
                         formData.append('idUnico', idUnico);
                         formData.append('lat', lat);
                         formData.append('lon', lon);
                         formData.append('direccion', direccion);
 
-                        fetch(WEB_APP_URL, {
-                            method: 'POST',
-                            body: formData
-                        });
+                        fetch(WEB_APP_URL, { method: 'POST', body: formData });
 
-                        const texto = `Hola vi tu publicidad en Onroad y me interesa asistir al evento para celebrar a PAPÁ y conseguir un 10% de descuento con mi código: ${idUnico}`;
-                        const finalLink = `https://wa.me/${PHONE}?text=${encodeURIComponent(texto)}`;
-
-                        document.getElementById('loading-area').classList.add('hidden');
+                    } catch (e) {
+                        // Si falla Geoapify por red, igual guardamos coordenadas básicas
+                        document.getElementById('direccion-text').innerText = `Coordenadas: ${lat}, ${lon}`;
+                        const formData = new FormData();
+                        formData.append('idUnico', idUnico);
+                        formData.append('lat', lat);
+                        formData.append('lon', lon);
+                        formData.append('direccion', `Lat: ${lat}, Lon: ${lon}`);
+                        fetch(WEB_APP_URL, { method: 'POST', body: formData });
+                    }
+                }, (error) => {
+                    // Si deniegan el permiso o da timeout
+                    document.getElementById('status').innerHTML = "<span style='color:#dc2626; font-weight:bold;'>⚠️ Activa el GPS para validar el beneficio.</span>";
+                }, gpsOptions);
+            } else {
+                document.getElementById('status').innerText = "Tu navegador no soporta geolocalización.";
+            }
+        }
+        window.onload = procesar;
+    </script>
+</body>
+</html>
