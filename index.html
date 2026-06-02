@@ -72,7 +72,7 @@
         <div id="loading-area">
             <div class="loader"></div>
             <h1 class="title-dark">Procesando...</h1>
-            <p id="status" class="text-dark">Por favor, acepta el permiso de ubicación para generar tu descuento para Papá.</p>
+            <p id="status" class="text-dark">Por favor, acepta el permiso de ubicación para generar tu descuento de Papá.</p>
         </div>
 
         <div id="success-area" class="hidden">
@@ -87,4 +87,42 @@
             <p style="font-size: 0.8rem; color: #64748b; margin-top: 20px;">Validado en: <br><span id="direccion-text" style="font-weight: bold; color: #334155;">---</span></p>
         </div>
 
-        <img src="ROAD NEGRO (1).png" alt="OnRoad Analytics" class
+        <img src="ROAD NEGRO (1).png" alt="OnRoad Analytics" class="logo-onroad">
+    </div>
+
+    <script>
+        const GEOAPIFY_KEY = "73282b6f42214899a14ad7ad5421244d"; 
+        // URL de tu última implementación (SJTg)
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyBXqLfgn7YV-Ytt99wg8XSlMT0sR-g7ZSIJZHBWhQHYEuvlzefABoNdEbj4nQEgeSJTg/exec";
+        const PHONE = "522712076727";
+
+        function generarID() {
+            return 'PAPA-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+        }
+
+        function procesar() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async (pos) => {
+                    const { latitude: lat, longitude: lon } = pos.coords;
+                    try {
+                        const geoRes = await fetch(`https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lon}&apiKey=${GEOAPIFY_KEY}`);
+                        const geoData = await geoRes.json();
+                        const direccion = geoData.features[0].properties.formatted;
+                        const idUnico = generarID();
+
+                        // Envío nativo de parámetros mediante FormData
+                        const formData = new FormData();
+                        formData.append('idUnico', idUnico);
+                        formData.append('lat', lat);
+                        formData.append('lon', lon);
+                        formData.append('direccion', direccion);
+
+                        fetch(WEB_APP_URL, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        const texto = `Hola vi tu publicidad en Onroad y me interesa asistir al evento para celebrar a PAPÁ y conseguir un 10% de descuento con mi código: ${idUnico}`;
+                        const finalLink = `https://wa.me/${PHONE}?text=${encodeURIComponent(texto)}`;
+
+                        document.getElementById('loading-area').classList.add('hidden');
